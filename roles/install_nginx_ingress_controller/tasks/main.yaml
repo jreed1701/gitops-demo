@@ -1,0 +1,73 @@
+---
+- name: Create ingress-nginx namespace, if missing.
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ nginx_ingress_namespace }}"
+
+- name: Apply Nginx ingress controller manifest
+  ansible.builtin.command: >
+    kubectl apply -f
+    https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-{{ nginx_ingress_controller_version }}/deploy/static/provider/cloud/deploy.yaml
+  register: nginx_apply_result
+  changed_when: "'created' in nginx_apply_result.stdout or 'configured' in nginx_apply_result.stdout"
+
+- name: Wait for ingress controller pods to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ nginx_ingress_namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name=ingress-nginx"
+      - "app.kubernetes.io/component=controller"
+  register: nginx_ingress_pods
+  until: >
+    nginx_ingress_pods.resources
+    | json_query("[*].status.containerStatuses[].ready")
+    | select('equalto', true)
+    | list
+    | length > 0
+  retries: 30
+  delay: 10
+
+- name: Show ingress pod names
+  ansible.builtin.debug:
+    var: nginx_ingress_pods.resources | map(attribute='metadata.name') | list
+
+- name: Check ingress-nginx service
+  kubernetes.core.k8s_info:
+    kind: Service
+    namespace: "{{ nginx_ingress_namespace }}"
+    name: ingress-nginx-controller
+  register: nginx_ingress_service
+
+- name: Ensure service has an external IP or NodePort
+  ansible.builtin.fail:
+    msg: "Ingress service is not exposed properly: {{ nginx_ingress_service.resources[0].status }}"
+  when: >
+    (
+      nginx_ingress_service.resources[0].status.loadBalancer.ingress is not defined
+      or nginx_ingress_service.resources[0].status.loadBalancer.ingress | length == 0
+    )
+    and
+    (
+      nginx_ingress_service.resources[0].spec.type != "NodePort"
+    )
+
+- name: Verify pod image version matches expected
+  vars:
+    expected_tag: "{{ nginx_ingress_controller_version | regex_replace('^controller-', '') }}"
+    # The two regex items first remove the sha digest, and then extract the semver tag.
+    pod_versions: >-
+      {{ nginx_ingress_pods.resources
+          | map(attribute='spec.containers')
+          | flatten
+          | map(attribute='image')
+          | map('regex_replace', '@sha256.*$', '')
+          | map('regex_replace', '^.*:(.*)$', '\1')
+          | list }}
+  ansible.builtin.fail:
+    msg: "Ingress controller version mismatch! Expected {{ expected_tag }}, got {{ pod_versions | unique }}"
+  when: pod_versions | unique | length != 1 or (expected_tag not in (pod_versions | unique))

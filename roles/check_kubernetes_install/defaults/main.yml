@@ -1,0 +1,3 @@
+kubernetes_kubectl_bin: kubectl
+kubernetes_expected_kubectl_version: ""
+

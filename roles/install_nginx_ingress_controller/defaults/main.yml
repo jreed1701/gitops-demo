@@ -1,0 +1,2 @@
+nginx_ingress_controller_version: "v1.13.1"
+nginx_ingress_namespace: "ingress-nginx"
