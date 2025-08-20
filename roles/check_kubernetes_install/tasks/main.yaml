@@ -1,0 +1,34 @@
+---
+- name: Check if kubectl binary exists
+  ansible.builtin.stat:
+    path: "{{ kubernetes_kubectl_bin }}"
+  register: kubernetes_check
+
+- name: Fail if kubectl is not installed
+  ansible.builtin.fail:
+    msg: "kubectl not found on the host at {{ kubernetes_kubectl_bin }}"
+  when: not kubernetes_check.stat.exists
+
+- name: Get kubectl client version (JSON output)
+  ansible.builtin.command: "{{ kubernetes_kubectl_bin }} version --client -o json"
+  register: kubernetes_kubectl_version_cmd
+  changed_when: false
+
+- name: Parse kubectl version JSON
+  ansible.builtin.set_fact:
+    kubernetes_kubectl_version_json: "{{ kubernetes_kubectl_version_cmd.stdout | from_json }}"
+
+- name: Extract semantic version string
+  ansible.builtin.set_fact:
+    kubernetes_kubectl_version: "{{ kubernetes_kubectl_version_json.clientVersion.gitVersion }}"
+
+- name: Show kubectl version
+  ansible.builtin.debug:
+    msg: "kubectl version is: {{ kubernetes_kubectl_version }}"
+
+- name: Check if kubectl version matches expected
+  ansible.builtin.fail:
+    msg: "kubectl version mismatch! Expected {{ kubernetes_expected_kubectl_version }}, got {{ kubernetes_kubectl_version }}"
+  when:
+    - kubernetes_expected_kubectl_version | length > 0
+    - kubernetes_kubectl_version != kubernetes_expected_kubectl_version

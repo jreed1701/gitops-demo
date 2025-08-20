@@ -1,0 +1,93 @@
+---
+- name: Create ArgoCD namespace, if needed.
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ argocd_namespace }}"
+
+- name: Apply ArgoCD install manifest
+  ansible.builtin.command: >
+    kubectl apply -n {{ argocd_namespace }}
+    -f https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml
+  register: argocd_apply
+  changed_when: "'created' in argocd_apply.stdout or 'configured' in argocd_apply.stdout"
+
+- name: Wait for ArgoCD pods to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ argocd_namespace }}"
+  register: argocd_pods
+  until: >
+    argocd_pods.resources
+    | json_query("[*].status.containerStatuses[].ready")
+    | select('equalto', true)
+    | list
+    | length == argocd_pods.resources | length
+  retries: 40
+  delay: 15
+
+- name: Show ArgoCD pod names
+  ansible.builtin.debug:
+    msg: "ArgoCD pods: {{ argocd_pods.resources | map(attribute='metadata.name') | list }}"
+
+- name: Create Ingress for ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: argocd-server-ingress
+        namespace: "{{ argocd_namespace }}"
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      spec:
+        rules:
+          - host: "{{ argocd_hostname }}"
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: argocd-server
+                      port:
+                        name: https
+
+- name: Verify Ingress is created
+  kubernetes.core.k8s_info:
+    api_version: networking.k8s.io/v1
+    kind: Ingress
+    namespace: "{{ argocd_namespace }}"
+    name: argocd-server-ingress
+  register: argocd_ingress
+
+- name: Fail if ingress is missing rules
+  ansible.builtin.fail:
+    msg: "ArgoCD ingress not configured properly: {{ argocd_ingress.resources[0].spec }}"
+  when: argocd_ingress.resources | length == 0 or
+        argocd_ingress.resources[0].spec.rules | length == 0
+
+- name: Retrieve initial ArgoCD admin password
+  kubernetes.core.k8s_info:
+    kind: Secret
+    namespace: "{{ argocd_namespace }}"
+    name: argocd-initial-admin-secret
+  register: argocd_admin_secret
+
+- name: Decode ArgoCD admin password
+  set_fact:
+    argocd_admin_password: "{{ argocd_admin_secret.resources[0].data.password | b64decode }}"
+
+- name: Show ArgoCD credentials
+  ansible.builtin.debug:
+    msg: |
+      ArgoCD is ready!
+      Username: admin
+      Password: {{ argocd_admin_password }}
+      URL: https://{{ argocd_hostname }}:{{argocd_kubectl_port_forward}}/

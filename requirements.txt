@@ -1,0 +1,6 @@
+ansible >= 10.7.0
+ansible-lint >= 25.8.1
+jmespath == 1.0.1
+jsonpatch == 1.33
+kubernetes >= 24.2.0
+pyyaml >= 3.11

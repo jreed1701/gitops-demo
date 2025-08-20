@@ -1,0 +1,8 @@
+- name: Install Resources
+  hosts:
+    - target_host
+  roles:
+    - check_kubernetes_install
+    - install_nginx_ingress_controller
+    - install_argocd_cli
+    - install_argocd

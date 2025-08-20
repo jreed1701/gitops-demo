@@ -1,0 +1,5 @@
+---
+argocd_namespace: argocd
+argocd_version: "v2.13.2"
+argocd_hostname: "localhost"
+argocd_kubectl_port_forward: 8080
