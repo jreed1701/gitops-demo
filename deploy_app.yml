@@ -1,0 +1,31 @@
+- name: Configure Resources & Deploy App
+  hosts:
+    - target_host
+  roles:
+    - deploy_app
+  tasks:
+    - name: Create Ingress to guestbook app.
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: argocd-server-ingress
+            namespace: "{{dest_namespace}}"
+            annotations:
+              kubernetes.io/ingress.class: nginx
+              nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+              nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+          spec:
+            rules:
+              - host: "{{ argocd_hostname }}"
+                http:
+                  paths:
+                    - path: /{{app_name}}
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: guestbook-ui
+                          port:
+                            name: https
