@@ -5,7 +5,7 @@ Demonstrate GitOps on K8S using ArgoCD & Ansible.
 # Pre-Requisites
 
 1. A WSL2 environment with Ubuntu installed and updated.
-2. Docker Desktop for Windows with K8S enabled.
+2. Docker Desktop for Windows with K8S v1.32.2 enabled.
 3. Ansible == v2.10.8
 4. Python >= v3.10.x
 5. ansible-lint >= 25.8.1
@@ -23,16 +23,36 @@ doesn't need to be a python package, so requirements are installed manually.
 
 ## Running Playbooks
 
-The virtual environment must be installed and active.
+The virtual environment must be installed and active. Plase see the Development section of [Environments](./doc/environment.md) page for
+information about the test environment.
 
 ### Installation
 
-See the Development section of [Environments](./doc/environment.md) page.
+The playbook from this section will install the nginx ingress controller, and ArgoCD.
 
-1. ansible-playbook -i inventories/development/hosts.yml install.yml --ask-become-pass
-2. kubectl port-forward svc/argocd-server -n argocd 8080:443
-3. Open ArgoCD from browser URL https://localhost:8080/
-4. Click past SSL Error. This is due to using a self-signed cert from ArgoCD service.
+1. Run `ansible-playbook -i inventories/development/hosts.yml install.yml --ask-become-pass`
+2. At the end of the playbook, ansible will print out the default user password.  This will be addressed
+   later.  For now, only take note of it.
+3. In a separate terminal, run `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+4. Open ArgoCD from browser pointed at url: `https://localhost:8080/`
+5. Click past SSL Error. This is due to using a self-signed cert from ArgoCD service.
+6. Login with the initial username and password from the previous section.
+
+The default password will get locked down at a later step.
+
+#### App Deployment
+
+The playbook from this section will deploy an app via ArgoCD.  The app is the same app described in ArgoCD's getting
+started guide.  Please see the reference section.
+
+**Pre-requisite:** - Make sure the port forward is still running: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+
+1. Run `ansible-playbook -i inventories/development/hosts.yml deploy_app.yml`
+2. In a separate terminal, run `kubectl port-forward svc/guestbook-ui 8081:80`
+3. Open two browser tabs:
+  a. Go to: `https://localhost:8080/applications/argocd/guestbook` to see that ArgoCD delployed the test app.
+  b. Go to: `http://localhost:8081/` to see the app home page itself.
+
 
 # Design Information
 

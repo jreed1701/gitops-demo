@@ -1,0 +1,62 @@
+# ////////////////////////////////////////////
+# Handle Credentials
+# ////////////////////////////////////////////
+- name: Get Argo CD admin password from secret
+  command: >
+    kubectl -n argocd get secret argocd-initial-admin-secret
+    -o jsonpath="{.data.password}"
+  register: argocd_secret
+
+- name: Decode admin password
+  set_fact:
+    admin_password: "{{ argocd_secret.stdout | b64decode }}"
+
+- name: Login to Argo CD server
+  command: >
+    argocd login {{ argocd_server }}
+    --username admin
+    --password {{ admin_password }}
+    {{ '--insecure' if argocd_insecure else '' }}
+  changed_when: false
+
+# ////////////////////////////////////////////
+# Cluster registration
+# ////////////////////////////////////////////
+- name: Check if cluster is already registered
+  command: argocd cluster list -o name
+  register: cluster_list
+  changed_when: false
+  failed_when: false
+  when: cluster_context | length > 0
+
+- name: Register external cluster with Argo CD
+  command: argocd cluster add {{ cluster_context }} --yes
+  when:
+    - cluster_context | length > 0
+    - cluster_context not in cluster_list.stdout_lines
+
+# ////////////////////////////////////////////
+# Application creation
+# ////////////////////////////////////////////
+- name: Check if Argo CD app already exists
+  command: argocd app get {{ app_name }}
+  register: app_check
+  changed_when: false
+  failed_when: false
+
+- name: Create Argo CD application if it does not exist
+  command: >
+    argocd app create {{ app_name }}
+    --repo {{ repo_url }}
+    --path {{ app_path }}
+    --dest-server {{ dest_server }}
+    --dest-namespace {{ dest_namespace }}
+  when: app_check.rc != 0
+
+# ////////////////////////////////////////////
+# Sync app
+# ////////////////////////////////////////////
+- name: Sync Argo CD application
+  command: argocd app sync {{ app_name }}
+  register: sync_result
+  changed_when: "'Successfully synced' in sync_result.stdout"

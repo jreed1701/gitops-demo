@@ -1,0 +1,8 @@
+argocd_server: "localhost:8080"
+argocd_insecure: true
+cluster_context: ""
+app_name: "guestbook"
+repo_url: "https://github.com/argoproj/argocd-example-apps.git"
+app_path: "guestbook"
+dest_server: "https://kubernetes.default.svc"
+dest_namespace: "default"
