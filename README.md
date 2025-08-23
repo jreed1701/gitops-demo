@@ -23,7 +23,7 @@ doesn't need to be a python package, so requirements are installed manually.
 
 ## Running Playbooks
 
-The virtual environment must be installed and active. Plase see the Development section of [Environments](./doc/environment.md) page for
+The virtual environment must be installed and active. Please see the Development section of [Environments](./doc/environment.md) page for
 information about the test environment.
 
 ### Installation
@@ -83,6 +83,8 @@ Please see the [Design](./doc/design.md) section for information detailing how t
 # Future Work Considerations
 
 1. Automatically deployed application updates - Setup ArgoCD app synchronization based on a github webhook.
+2. Write a new inventory type and run all of the playbooks in a CI/CD environment. This would simulate deploying to
+   a cluster other than Docker Desktop for Windows.
 
 # References
 
