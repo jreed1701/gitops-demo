@@ -212,3 +212,4 @@ ansible.log
 
 # user only files
 vault.yml
+vault-pass.txt

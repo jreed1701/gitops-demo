@@ -9,19 +9,20 @@
     url: "https://github.com/argoproj/argo-cd/releases/download/{{ argocd_cli_version }}/argocd-linux-amd64"
     dest: "/tmp/argocd"
     mode: '0755'
-    force: yes
+    force: true
 
 - name: Move ArgoCD CLI to install path
   ansible.builtin.command:
     cmd: mv /tmp/argocd {{ argocd_cli_install_path }}
-  become: yes
+    creates: "{{ argocd_cli_install_path }}"
+  become: true
 
 - name: Ensure ArgoCD CLI is executable
   ansible.builtin.file:
     path: "{{ argocd_cli_install_path }}"
     mode: '0755'
     state: file
-  become: yes
+  become: true
 
 - name: Verify ArgoCD CLI version
   ansible.builtin.command:

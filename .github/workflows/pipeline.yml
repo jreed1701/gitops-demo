@@ -1,0 +1,47 @@
+name: Ansible CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+
+  lint-and-validate:
+    name: linting
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_VAULT_TEST_PASS: ${{ secrets.ANSIBLE_VAULT_TEST_PASS }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install ansible ansible-lint
+
+      - name: Create fake unencrypted vault password file
+        run: |
+            echo "argocd_admin_password: $ANSIBLE_VAULT_TEST_PASS" > vault.yml
+        shell: bash
+
+      - name: Run ansible-lint on roles
+        run: |
+            ansible-lint -c .ansible-lint.yml install.yml
+            ansible-lint -c .ansible-lint.yml secure_argocd.yml
+            ansible-lint -c .ansible-lint.yml deploy_app.yml
+            ansible-lint -c .ansible-lint.yml roles/
+            ansible-lint -c .ansible-lint.yml inventories/
+
+      - name: Ansible syntax check
+        run: |
+            ansible-playbook --syntax-check install.yml -i inventories/development/hosts.yml
+            ansible-playbook --syntax-check secure_argocd.yml -i inventories/development/hosts.yml
+            ansible-playbook --syntax-check deploy_app.yml -i inventories/development/hosts.yml

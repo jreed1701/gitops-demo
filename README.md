@@ -62,7 +62,7 @@ This playbook will change the argocd password.
 ### App Deployment
 
 The playbook from this section will deploy an app via ArgoCD.  The app is the same app described in ArgoCD's getting
-started guide.  Please see the reference section.
+started guide.  Please see the reference section.  The app is deployed to the default kubernetes namespace.
 
 **Pre-requisites:**
    - Make sure the port forward is still running: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
@@ -73,7 +73,7 @@ started guide.  Please see the reference section.
 1. Run `ansible-playbook -i inventories/development/hosts.yml deploy_app.yml --ask-vault-pass`
 2. In a separate terminal, run `kubectl port-forward svc/guestbook-ui 8081:80`
 3. Open two browser tabs:
-  a. Go to: `https://localhost:8080/applications/argocd/guestbook` to see that ArgoCD delployed the test app.
+  a. Go to: `https://localhost:8080/applications/argocd/guestbook` to see that ArgoCD deployed the test app.
   b. Go to: `http://localhost:8081/` to see the app home page itself.
 
 # Design Information
