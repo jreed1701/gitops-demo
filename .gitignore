@@ -209,3 +209,6 @@ __marimo__/
 # Ansible
 .ansible
 ansible.log
+
+# user only files
+vault.yml

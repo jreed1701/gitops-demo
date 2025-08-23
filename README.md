@@ -38,21 +38,43 @@ The playbook from this section will install the nginx ingress controller, and Ar
 5. Click past SSL Error. This is due to using a self-signed cert from ArgoCD service.
 6. Login with the initial username and password from the previous section.
 
-The default password will get locked down at a later step.
+The default password will get locked down in the next step.
 
-#### App Deployment
+### Secure ArgoCD
+
+This playbook will change the argocd password.
+
+**Pre-requisite:**
+  - Make sure the port forward is still running: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+
+**Steps**
+
+1. Create a file: `touch vault.yml`
+2. Add to the file `argocd_admin_password: "(your pass)"`
+3. Run `ansible-vault encrypt vault.yml`
+4. Ansible will prompt the user for a vault password if it needs to.  Do so and take note of it. The contents of the file will
+   also become encrypted and unreadable.
+5. Next run: `ansible-playbook -i inventories/development/hosts.yml secure_argocd.yml --ask-vault-pass`
+   - NOTE - The `--ask-vault-pass` flag will prompt the user for the same password created in the previous step.
+6. The playbook restarts the argocd pod, so rerun `kubectl port-forward svc/argocd-server -n argocd 8080:443` in a separate terminal.
+7. (Optional) - Login to ArgoCD and verify the new password now works: `https://localhost:8080/`
+
+### App Deployment
 
 The playbook from this section will deploy an app via ArgoCD.  The app is the same app described in ArgoCD's getting
 started guide.  Please see the reference section.
 
-**Pre-requisite:** - Make sure the port forward is still running: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+**Pre-requisites:**
+   - Make sure the port forward is still running: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+   - The vault with `argocd_admin_password` must have already been created in the previous section.
 
-1. Run `ansible-playbook -i inventories/development/hosts.yml deploy_app.yml`
+**Steps**
+
+1. Run `ansible-playbook -i inventories/development/hosts.yml deploy_app.yml --ask-vault-pass`
 2. In a separate terminal, run `kubectl port-forward svc/guestbook-ui 8081:80`
 3. Open two browser tabs:
   a. Go to: `https://localhost:8080/applications/argocd/guestbook` to see that ArgoCD delployed the test app.
   b. Go to: `http://localhost:8081/` to see the app home page itself.
-
 
 # Design Information
 
@@ -60,8 +82,7 @@ Please see the [Design](./doc/design.md) section for information detailing how t
 
 # Future Work Considerations
 
-1. The ansible playbook merely points out the initial admin password for argocd. Ansible could be automated to change it
-   to a desired password provided by the user in a file or a secret carrying mechanism; eg K8S secret or Hashicorp Vault.
+1. Automatically deployed application updates - Setup ArgoCD app synchronization based on a github webhook.
 
 # References
 

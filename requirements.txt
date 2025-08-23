@@ -3,4 +3,5 @@ ansible-lint >= 25.8.1
 jmespath == 1.0.1
 jsonpatch == 1.33
 kubernetes >= 24.2.0
+passlib
 pyyaml >= 3.11

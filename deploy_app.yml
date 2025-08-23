@@ -1,8 +1,10 @@
-- name: Configure Resources & Deploy App
+- name: Deploy App
   hosts:
     - target_host
   roles:
     - deploy_app
+  vars_files:
+    - vault.yml
   tasks:
     - name: Create Ingress to guestbook app.
       kubernetes.core.k8s:
