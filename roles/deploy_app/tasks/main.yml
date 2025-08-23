@@ -7,7 +7,7 @@
     argocd_password_hashed: "{{ argocd_admin_password | password_hash('bcrypt') }}"
 
 - name: Login to Argo CD server
-  command: >
+  ansible.builtin.command: >
     argocd login {{ argocd_server }}
     --username admin
     --password {{ argocd_admin_password }}
@@ -18,14 +18,16 @@
 # Cluster registration
 # ////////////////////////////////////////////
 - name: Check if cluster is already registered
-  command: argocd cluster list -o name
+  ansible.builtin.command: argocd cluster list -o name
   register: cluster_list
   changed_when: false
   failed_when: false
   when: cluster_context | length > 0
 
-- name: Register external cluster with Argo CD
-  command: argocd cluster add {{ cluster_context }} --yes
+# NOTE - Ansible lint believes this is not idempotent, but I check in the previous step
+# whether or not this step is needed.
+- name: Register external cluster with Argo CD  # noqa no-changed-when
+  ansible.builtin.command: argocd cluster add {{ cluster_context }} --yes
   when:
     - cluster_context | length > 0
     - cluster_context not in cluster_list.stdout_lines
@@ -34,13 +36,15 @@
 # Application creation
 # ////////////////////////////////////////////
 - name: Check if Argo CD app already exists
-  command: argocd app get {{ app_name }}
+  ansible.builtin.command: argocd app get {{ app_name }}
   register: app_check
   changed_when: false
   failed_when: false
 
-- name: Create Argo CD application if it does not exist
-  command: >
+# NOTE - Ansible lint believes this is not idempotent, but I check in the previous step
+# whether or not this step is needed.
+- name: Create Argo CD application if it does not exist  # noqa no-changed-when
+  ansible.builtin.command: >
     argocd app create {{ app_name }}
     --repo {{ repo_url }}
     --path {{ app_path }}
@@ -52,7 +56,7 @@
 # Sync app
 # ////////////////////////////////////////////
 - name: Sync Argo CD application
-  command: argocd app sync {{ app_name }}
+  ansible.builtin.command: argocd app sync {{ app_name }}
   register: sync_result
   changed_when: "'Successfully synced' in sync_result.stdout"
 

@@ -81,7 +81,7 @@
   register: argocd_admin_secret
 
 - name: Decode ArgoCD admin password
-  set_fact:
+  ansible.builtin.set_fact:
     argocd_admin_password: "{{ argocd_admin_secret.resources[0].data.password | b64decode }}"
 
 - name: Show ArgoCD credentials

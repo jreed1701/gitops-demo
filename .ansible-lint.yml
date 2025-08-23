@@ -1,0 +1,9 @@
+---
+use_default_rules: true
+
+skip_list:
+  # Want to be able to name variables as desired.
+  - var-naming[no-role-prefix]
+
+exclude_paths:
+  - vault.yml

@@ -1,5 +1,6 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "python-envs.pythonProjects": [],
-    "ansible.python.interpreterPath": "/usr/bin/python3"
+    "ansible.python.interpreterPath": "/usr/bin/python3",
+    "ansible.validation.lint.arguments": "-c .ansible-lint.yml"
 }
