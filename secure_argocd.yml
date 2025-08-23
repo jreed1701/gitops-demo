@@ -1,0 +1,7 @@
+- name: Secure ArgoCD
+  hosts:
+    - target_host
+  vars_files:
+    - vault.yml
+  roles:
+    - secure_argocd

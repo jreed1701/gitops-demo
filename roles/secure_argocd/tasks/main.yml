@@ -1,0 +1,43 @@
+---
+- name: Get the hash of the initial password.
+  ansible.builtin.set_fact:
+    argocd_password_hashed: "{{ argocd_admin_password | password_hash('bcrypt') }}"
+
+- name: Change ArgoCD admin password to secure it.
+  kubernetes.core.k8s:
+    state: present
+    namespace: argocd
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: argocd-secret
+      type: Opaque
+      stringData:
+        admin.password: "{{ argocd_password_hashed }}"
+        admin.passwordMtime: "{{ lookup('pipe', 'date +%FT%T%Z') }}"
+
+- name: Check if initial admin secret exists
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: argocd
+    name: argocd-initial-admin-secret
+  register: initial_secret
+  ignore_errors: true
+
+- name: Delete initial admin secret if it exists
+  kubernetes.core.k8s:
+    state: absent
+    namespace: argocd
+    kind: Secret
+    name: argocd-initial-admin-secret
+  when: initial_secret.resources | length > 0
+
+- name: Restart ArgoCD server pods
+  kubernetes.core.k8s:
+    state: absent
+    kind: Pod
+    namespace: argocd
+    label_selectors:
+      - app.kubernetes.io/name=argocd-server
