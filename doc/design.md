@@ -128,8 +128,8 @@ Error handling was built into the ansible playbook roles in the form of verifyin
 
 ## Idempotence
 
-All playbooks were written to be as idempotent as possible to ensure that ansible performed exactly the required behavior each time every time. The following
-is an example:
+All playbooks were written to be as idempotent as possible to ensure that ansible performed exactly the required behavior the first time, and then each subsequent
+time has no further effect.  The goal is to achieve the desired state.
 
 **Not Idempotent**
 
@@ -153,6 +153,8 @@ This task in the `install_argocd_cli` role is idempotent because the command use
     creates: "{{ argocd_cli_install_path }}"
   become: true
 ```
+
+Doc Reference: https://docs.ansible.com/ansible/2.10/collections/ansible/builtin/command_module.html#parameter-creates
 
 ## Security Discussion
 
